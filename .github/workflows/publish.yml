@@ -62,14 +62,16 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release view "$RELEASE_TAG" >/dev/null 2>&1 \
-            || gh release create "$RELEASE_TAG" --title "Extension archives" \
-                 --notes "Packaged extension archives referenced by index.json. Do not edit by hand."
           shopt -s nullglob
           archives=(dist/*.tar.gz)
-          if (( ${#archives[@]} )); then
-            gh release upload "$RELEASE_TAG" "${archives[@]}"
+          if (( ${#archives[@]} == 0 )); then
+            echo "no new archives"
+            exit 0
           fi
+          gh release view "$RELEASE_TAG" >/dev/null 2>&1 \
+            || gh release create "$RELEASE_TAG" --target "$GITHUB_SHA" --title "Extension archives" \
+                 --notes "Packaged extension archives referenced by index.json. Do not edit by hand."
+          gh release upload "$RELEASE_TAG" "${archives[@]}"
 
       - uses: actions/upload-pages-artifact@v3
         with:
