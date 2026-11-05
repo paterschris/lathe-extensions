@@ -1,0 +1,7 @@
+# One table per extension. The table name is the extension id and must match
+# the `id` in the extension's own extension.toml.
+#
+# [my-extension]
+# submodule = "extensions/my-extension"   # git submodule holding the source
+# path = "."                              # optional, directory inside the submodule
+# version = "0.1.0"                       # must match extension.toml

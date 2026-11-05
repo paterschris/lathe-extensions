@@ -1,0 +1,79 @@
+name: Publish
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
+env:
+  LATHE_REV: 7b837bc535defe799b9e9e53a26f0936eea9fa07
+  INDEX_URL: https://paterschris.github.io/lathe-extensions/index.json
+  RELEASE_TAG: extensions
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-wasip2
+
+      - name: Cache zed-extension (extension_cli)
+        id: cache-extension-cli
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin/zed-extension
+          key: extension-cli-${{ runner.os }}-${{ env.LATHE_REV }}
+
+      - name: Install extension_cli
+        if: steps.cache-extension-cli.outputs.cache-hit != 'true'
+        run: cargo install --git https://github.com/paterschris/lathe --rev "$LATHE_REV" --locked extension_cli
+
+      - name: Fetch published index
+        run: curl -fsSL "$INDEX_URL" -o published-index.json || echo "no published index yet"
+
+      - name: Package new versions and write index
+        run: >
+          python3 script/registry.py publish
+          --published-index published-index.json
+          --extension-cli "$HOME/.cargo/bin/zed-extension"
+          --download-base-url "https://github.com/${{ github.repository }}/releases/download/${RELEASE_TAG}"
+          --dist dist
+          --out site/index.json
+
+      # Archives must be uploaded before the index that points at them is deployed.
+      - name: Upload archives
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view "$RELEASE_TAG" >/dev/null 2>&1 \
+            || gh release create "$RELEASE_TAG" --title "Extension archives" \
+                 --notes "Packaged extension archives referenced by index.json. Do not edit by hand."
+          shopt -s nullglob
+          archives=(dist/*.tar.gz)
+          if (( ${#archives[@]} )); then
+            gh release upload "$RELEASE_TAG" "${archives[@]}"
+          fi
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - id: deploy
+        uses: actions/deploy-pages@v4

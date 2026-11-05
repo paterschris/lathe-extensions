@@ -1,0 +1,45 @@
+name: Check
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  # Commit of paterschris/lathe whose extension_cli builds the archives.
+  # Bump together with publish.yml.
+  LATHE_REV: 7b837bc535defe799b9e9e53a26f0936eea9fa07
+  INDEX_URL: https://paterschris.github.io/lathe-extensions/index.json
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-wasip2
+
+      - name: Cache zed-extension (extension_cli)
+        id: cache-extension-cli
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin/zed-extension
+          key: extension-cli-${{ runner.os }}-${{ env.LATHE_REV }}
+
+      - name: Install extension_cli
+        if: steps.cache-extension-cli.outputs.cache-hit != 'true'
+        run: cargo install --git https://github.com/paterschris/lathe --rev "$LATHE_REV" --locked extension_cli
+
+      - name: Fetch published index
+        run: curl -fsSL "$INDEX_URL" -o published-index.json || echo "no published index yet"
+
+      - name: Validate and build changed extensions
+        run: >
+          python3 script/registry.py validate
+          --published-index published-index.json
+          --extension-cli "$HOME/.cargo/bin/zed-extension"
