@@ -21,7 +21,28 @@ that table):
 requires = ["lathe"]
 ```
 
-Lathe shows a "Lathe" badge on it. Lathe skips any extension that lists a
+Lathe shows a "Lathe" badge on it.
+
+Extensions that use the Lathe API (`lathe_extension_api`) must also list the
+permissions they need. Lathe asks users to allow them at install time, shows
+them on the extension's card, and lets users revoke them:
+
+```toml
+requires = ["lathe"]
+lathe_capabilities = ["buffer:read", "buffer:write"]
+```
+
+| Capability | Allows |
+|---|---|
+| `buffer:read` | Reading the text, path, language and selections of the file a command was run from |
+| `buffer:write` | Editing that file and changing its selections |
+| `events:open` | Running when a file is opened |
+| `events:save` | Running when a file is saved |
+| `events:change` | Running when a file's text changes (after typing pauses) |
+| `ui:status` | Showing text in the status bar and showing notifications |
+| `ui:prompt` | Asking for text or a choice while a command runs |
+| `tasks:spawn` | Running commands as tasks in a terminal |
+ Lathe skips any extension that lists a
 requirement it does not recognize, so unknown values are rejected by CI.
 
 ## Adding a new extension

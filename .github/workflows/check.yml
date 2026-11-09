@@ -9,7 +9,7 @@ permissions:
 env:
   # Commit of paterschris/lathe whose extension_cli builds the archives.
   # Bump together with publish.yml.
-  LATHE_REV: 7b837bc535defe799b9e9e53a26f0936eea9fa07
+  LATHE_REV: 2db98f860aa4919e4fadd01d120ecdc8b370c975
   INDEX_URL: https://paterschris.github.io/lathe-extensions/index.json
 
 jobs:

@@ -32,6 +32,17 @@ SEMVER = re.compile(r"^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$")
 # Host requirements an extension may declare with `requires` in extension.toml.
 # Must match SUPPORTED_REQUIREMENTS in Lathe's crates/extension_host/src/registry.rs.
 KNOWN_REQUIREMENTS = {"lathe"}
+# Must match LatheCapability in Lathe's crates/extension_host/src/wasm_host/lathe.rs.
+KNOWN_LATHE_CAPABILITIES = {
+    "buffer:read",
+    "buffer:write",
+    "events:open",
+    "events:save",
+    "events:change",
+    "ui:status",
+    "ui:prompt",
+    "tasks:spawn",
+}
 
 
 @dataclass
@@ -141,6 +152,15 @@ def validate(listings: list[Listing], published: dict[str, dict]) -> list[str]:
             errors.append(f"{prefix}: requires must be a list of strings")
         elif unknown := sorted(set(requires) - KNOWN_REQUIREMENTS):
             errors.append(f"{prefix}: unknown requirements {unknown}")
+        capabilities = manifest.get("lathe_capabilities", [])
+        if not isinstance(capabilities, list) or not all(
+            isinstance(c, str) for c in capabilities
+        ):
+            errors.append(f"{prefix}: lathe_capabilities must be a list of strings")
+        elif unknown := sorted(set(capabilities) - KNOWN_LATHE_CAPABILITIES):
+            errors.append(f"{prefix}: unknown lathe_capabilities {unknown}")
+        elif capabilities and "lathe" not in requires:
+            errors.append(f'{prefix}: lathe_capabilities need requires = ["lathe"]')
 
         previous = published.get(listing.id)
         if (
@@ -171,7 +191,9 @@ def package(listing: Listing, extension_cli: str, dist_dir: Path) -> dict:
         )
         manifest = json.loads((Path(output) / "manifest.json").read_text())
         # extension_cli's manifest.json has no Lathe-specific fields.
-        manifest["requires"] = load_extension_manifest(listing).get("requires", [])
+        source_manifest = load_extension_manifest(listing)
+        manifest["requires"] = source_manifest.get("requires", [])
+        manifest["lathe_capabilities"] = source_manifest.get("lathe_capabilities", [])
         archive = dist_dir / listing.archive_name
         shutil.copyfile(Path(output) / "archive.tar.gz", archive)
 
@@ -194,6 +216,7 @@ def index_entry(listing: Listing, packaged: dict, download_base_url: str) -> dic
         "wasm_api_version": manifest.get("wasm_api_version"),
         "provides": manifest.get("provides", []),
         "requires": manifest.get("requires", []),
+        "lathe_capabilities": manifest.get("lathe_capabilities", []),
         "download_url": f"{download_base_url.rstrip('/')}/{listing.archive_name}",
         "sha256": packaged["sha256"],
         "source_commit": submodule_commit(listing),
