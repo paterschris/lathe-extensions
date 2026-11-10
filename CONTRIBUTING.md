@@ -1,5 +1,11 @@
 # Publishing an extension
 
+Extensions get into the registry by pull request. CI builds and checks every
+pull request, and the maintainer reviews and merges it once CI passes. Merging
+publishes it. You don't need the registry to share an extension, though: anyone
+can install yours from a `.tar.gz` or git URL pasted into the Extensions page's
+search box.
+
 ## Before you open a pull request
 
 1. Your extension lives in its own public git repository with an
@@ -42,7 +48,10 @@ lathe_capabilities = ["buffer:read", "buffer:write"]
 | `ui:status` | Showing text in the status bar and showing notifications |
 | `ui:prompt` | Asking for text or a choice while a command runs |
 | `tasks:spawn` | Running commands as tasks in a terminal |
- Lathe skips any extension that lists a
+| `ui:views` | Showing views, panels and file previews drawn by Lathe (API 0.2, not released yet) |
+| `ui:decorations` | Highlighting and annotating text in the editor (API 0.2, not released yet) |
+
+Lathe skips any extension that lists a
 requirement it does not recognize, so unknown values are rejected by CI.
 
 ## Adding a new extension

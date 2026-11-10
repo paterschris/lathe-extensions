@@ -42,6 +42,8 @@ KNOWN_LATHE_CAPABILITIES = {
     "ui:status",
     "ui:prompt",
     "tasks:spawn",
+    "ui:views",
+    "ui:decorations",
 }
 
 
